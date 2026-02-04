@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relação Nominal de Servidores - MG - Carregamento Completo</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-dark: #29435A;
+            --primary-darker: #132837;
+            --accent-blue: #3A6EA5;
+            --accent-bright: #2E86AB;
+            --background-light: #EEEFF5;
+            --success-green: #28a745;
+            --warning-yellow: #ffc107;
+            --info-blue: #17a2b8;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-light);
+            padding-bottom: 30px;
+        }
+        
+        .main-header {
+            background: linear-gradient(135deg, var(--primary-darker) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-bottom: 4px solid var(--accent-blue);
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.98);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            flex-direction: column;
+        }
+        
+        .progress-container {
+            width: 80%;
+            max-width: 600px;
+            margin-top: 20px;
+        }
+        
+        .progress-text {
+            margin-top: 15px;
+            font-size: 14px;
+            color: var(--primary-dark);
+            text-align: center;
+        }
+        
+        .data-stats {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .search-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+        }
+        
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+            margin-bottom: 20px;
+        }
+        
+        .virtual-table {
+            height: 600px;
+            overflow-y: auto;
+            position: relative;
+        }
+        
+        .virtual-table-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+        }
+        
+        .virtual-row {
+            position: absolute;
+            width: 100%;
+            border-bottom: 1px solid #dee2e6;
+            box-sizing: border-box;
+        }
+        
+        .row-even {
+            background-color: #f8f9fa;
+        }
+        
+        .row-odd {
+            background-color: white;
+        }
+        
+        .row-hover:hover {
+            background-color: rgba(41, 67, 90, 0.05);
+        }
+        
+        .export-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+        }
+        
+        .btn-primary-custom {
+            background: linear-gradient(to right, var(--accent-blue), var(--accent-bright));
+            border: none;
+            padding: 10px 20px;
+            font-weight: 600;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-size: 13px;
+            color: white;
+        }
+        
+        .btn-primary-custom:hover {
+            background: linear-gradient(to right, var(--accent-bright), var(--accent-blue));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(46, 134, 171, 0.2);
+            color: white;
+        }
+        
+        .btn-warning-custom {
+            background: linear-gradient(to right, var(--warning-yellow), #ffb347);
+            border: none;
+            padding: 10px 20px;
+            font-weight: 600;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-size: 13px;
+            color: #212529;
+        }
+        
+        .btn-warning-custom:hover {
+            background: linear-gradient(to right, #ffb347, var(--warning-yellow));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2);
+        }
+        
+        .performance-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #856404;
+        }
+        
+        .cache-status {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #0c5460;
+        }
+        
+        @media (max-width: 768px) {
+            .virtual-table {
+                height: 400px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+            <span class="visually-hidden">Carregando...</span>
+        </div>
+        <div class="progress-container">
+            <div class="progress" style="height: 20px;">
+                <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                     role="progressbar" style="width: 0%"></div>
+            </div>
+        </div>
+        <div id="progressText" class="progress-text">
+            Iniciando carregamento de dados...
+        </div>
+        <div id="progressDetails" class="progress-text" style="font-size: 12px; color: #6c757d;">
+            Aguarde enquanto carregamos todas as 600 mil linhas...
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="main-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-1">Relação Nominal de Servidores - MG</h1>
+                    <p class="mb-0">Carregamento Completo de Todos os Dados</p>
+                </div>
+                <div class="text-end">
+                    <div id="headerStats" style="font-size: 12px;">
+                        <div>Conectado via JSONP</div>
+                        <div id="totalRecordsHeader">0 registros</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        
+        <!-- Performance Warning -->
+        <div class="performance-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Atenção:</strong> Este dashboard está carregando aproximadamente 600.000 registros. 
+            O carregamento completo pode levar alguns minutos. Os dados são armazenados localmente no seu navegador após o primeiro carregamento.
+        </div>
+        
+        <!-- Cache Status -->
+        <div class="cache-status" id="cacheStatus" style="display: none;">
+            <i class="fas fa-database me-2"></i>
+            <strong>Dados em cache:</strong> Carregando dados do armazenamento local...
+        </div>
+        
+        <!-- Data Statistics -->
+        <div class="data-stats">
+            <h4><i class="fas fa-chart-bar me-2"></i>Estatísticas dos Dados</h4>
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-item">
+                    <div class="stat-value" id="statTotal">0</div>
+                    <div class="stat-label">Total de Registros</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statInstituicoes">0</div>
+                    <div class="stat-label">Instituições</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statCargos">0</div>
+                    <div class="stat-label">Cargos Diferentes</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statCargaMedia">0h</div>
+                    <div class="stat-label">Carga Horária Média</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Search Container -->
+        <div class="search-container">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" id="searchInput" class="form-control" 
+                               placeholder="Buscar em todos os dados (nome, MASP, instituição, cargo)...">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex gap-2">
+                        <button class="btn-primary-custom flex-grow-1" onclick="executarBusca()">
+                            <i class="fas fa-search me-2"></i>Buscar
+                        </button>
+                        <button class="btn-warning-custom" onclick="limparBusca()">
+                            <i class="fas fa-redo me-2"></i>Limpar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="searchRealTime" checked>
+                        <label class="form-check-label" for="searchRealTime">
+                            Busca em tempo real (pode ser lenta com muitos dados)
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Export Container -->
+        <div class="export-container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6><i class="fas fa-download me-2"></i>Exportar Dados</h6>
+                    <p class="text-muted small">Exporte os dados filtrados para análise externa</p>
+                </div>
+                <div class="col-md-6 d-flex align-items-center justify-content-end gap-2">
+                    <button class="btn-primary-custom" onclick="exportarCSV()" id="btnExportCSV">
+                        <i class="fas fa-file-csv me-2"></i>Exportar CSV
+                    </button>
+                    <button class="btn-warning-custom" onclick="exportarJSON()">
+                        <i class="fas fa-file-code me-2"></i>Exportar JSON
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Virtual Table Container -->
+        <div class="table-container">
+            <div class="table-header" style="background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-darker) 100%); color: white; padding: 15px 20px;">
+                <h5 class="mb-0"><i class="fas fa-table me-2"></i>Visualização dos Dados</h5>
+                <div id="tableInfo">Mostrando 0 de 0 registros</div>
+            </div>
+            <div class="virtual-table" id="virtualTable">
+                <div class="virtual-table-content" id="virtualTableContent">
+                    <!-- Rows will be rendered here virtually -->
+                </div>
+            </div>
+            <div style="padding: 15px; background: #f8f9fa; border-top: 1px solid #dee2e6;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div id="paginationInfo" style="font-size: 12px;">
+                        Página 1 de 1
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-primary" onclick="paginaAnterior()">
+                            <i class="fas fa-chevron-left"></i> Anterior
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="proximaPagina()">
+                            Próxima <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Control Panel -->
+        <div class="export-container">
+            <h6><i class="fas fa-cogs me-2"></i>Controles de Dados</h6>
+            <div class="row mt-3">
+                <div class="col-md-4">
+                    <button class="btn-primary-custom w-100" onclick="recarregarDados()">
+                        <i class="fas fa-sync-alt me-2"></i>Recarregar da API
+                    </button>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn-warning-custom w-100" onclick="limparCache()">
+                        <i class="fas fa-trash-alt me-2"></i>Limpar Cache Local
+                    </button>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn-primary-custom w-100" onclick="testarPerformance()">
+                        <i class="fas fa-tachometer-alt me-2"></i>Testar Performance
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURAÇÕES
+        // ============================================
+        const CONFIG = {
+            RESOURCE_ID: '450768fc-7600-42a9-a20b-b45f89bf262e',
+            LIMIT: 1000, // Máximo por requisição da API
+            CACHE_KEY: 'servidores_mg_completo',
+            CACHE_TIMESTAMP_KEY: 'servidores_mg_timestamp',
+            CACHE_EXPIRY_DAYS: 7,
+            MAX_RETRIES: 3,
+            RETRY_DELAY: 2000,
+            BATCH_SIZE: 5000, // Processar em lotes para não travar o navegador
+            VIRTUAL_ROW_HEIGHT: 50
+        };
+
+        // ============================================
+        // VARIÁVEIS GLOBAIS
+        // ============================================
+        let todosDados = []; // Todos os dados carregados (~600k registros)
+        let dadosFiltrados = []; // Dados após busca/filtro
+        let dadosExibidos = []; // Dados atualmente exibidos (paginação virtual)
+        
+        let carregando = false;
+        let totalRegistrosAPI = 0;
+        let registrosCarregados = 0;
+        let offsetAtual = 0;
+        
+        let currentPage = 1;
+        const rowsPerPage = 1000; // Quantas linhas mostrar por "página"
+        
+        let searchTerm = '';
+        let searchTimeout = null;
+        
+        // Estatísticas
+        let instituicoesUnicas = new Set();
+        let cargosUnicos = new Set();
+        let anosUnicos = new Set();
+        let mesesUnicos = new Set();
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Inicializando carregamento completo...');
+            
+            // Configurar eventos
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                if (document.getElementById('searchRealTime').checked) {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        searchTerm = e.target.value.toLowerCase();
+                        executarBusca();
+                    }, 500);
+                }
+            });
+            
+            // Configurar virtual table
+            const virtualTable = document.getElementById('virtualTable');
+            virtualTable.addEventListener('scroll', atualizarVirtualTable);
+            
+            // Verificar cache primeiro
+            verificarCache();
+        });
+
+        // ============================================
+        // SISTEMA DE CACHE LOCAL
+        // ============================================
+        function verificarCache() {
+            const cacheStatus = document.getElementById('cacheStatus');
+            
+            try {
+                const cachedData = localStorage.getItem(CONFIG.CACHE_KEY);
+                const cachedTimestamp = localStorage.getItem(CONFIG.CACHE_TIMESTAMP_KEY);
+                
+                if (cachedData && cachedTimestamp) {
+                    const cacheDate = new Date(parseInt(cachedTimestamp));
+                    const now = new Date();
+                    const diffDays = (now - cacheDate) / (1000 * 60 * 60 * 24);
+                    
+                    if (diffDays < CONFIG.CACHE_EXPIRY_DAYS) {
+                        console.log('📦 Dados em cache encontrados (', diffDays.toFixed(1), 'dias)');
+                        
+                        cacheStatus.innerHTML = `
+                            <i class="fas fa-database me-2"></i>
+                            <strong>Dados em cache:</strong> Encontrados dados locais de ${cacheDate.toLocaleDateString()}. 
+                            <a href="#" onclick="carregarDoCache()" class="text-primary">Carregar do cache</a> ou 
+                            <a href="#" onclick="iniciarCarregamentoAPI()" class="text-primary">Atualizar da API</a>
+                        `;
+                        cacheStatus.style.display = 'block';
+                        return;
+                    } else {
+                        console.log('⚠️ Cache expirado');
+                    }
+                }
+            } catch (e) {
+                console.warn('⚠️ Erro ao acessar cache:', e);
+            }
+            
+            // Se não tem cache ou expirou, carregar da API
+            iniciarCarregamentoAPI();
+        }
+
+        function carregarDoCache() {
+            showLoading(true, 'Carregando dados do cache...');
+            
+            try {
+                const cachedData = localStorage.getItem(CONFIG.CACHE_KEY);
+                if (cachedData) {
+                    todosDados = JSON.parse(cachedData);
+                    console.log(`✅ Cache carregado: ${todosDados.length} registros`);
+                    
+                    // Calcular estatísticas
+                    calcularEstatisticas();
+                    
+                    // Atualizar interface
+                    dadosFiltrados = [...todosDados];
+                    atualizarEstatisticas();
+                    atualizarVirtualTable();
+                    showLoading(false);
+                    
+                    // Mostrar mensagem
+                    document.getElementById('cacheStatus').innerHTML = `
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Dados carregados do cache:</strong> ${todosDados.length.toLocaleString()} registros
+                    `;
+                }
+            } catch (e) {
+                console.error('❌ Erro ao carregar cache:', e);
+                showLoading(false);
+                iniciarCarregamentoAPI();
+            }
+        }
+
+        function salvarNoCache(dados) {
+            try {
+                localStorage.setItem(CONFIG.CACHE_KEY, JSON.stringify(dados));
+                localStorage.setItem(CONFIG.CACHE_TIMESTAMP_KEY, Date.now().toString());
+                console.log(`💾 Dados salvos no cache: ${dados.length} registros`);
+            } catch (e) {
+                console.warn('⚠️ Não foi possível salvar no cache (pode ser storage cheio):', e);
+            }
+        }
+
+        function limparCache() {
+            if (confirm('Tem certeza que deseja limpar todos os dados armazenados localmente?')) {
+                localStorage.removeItem(CONFIG.CACHE_KEY);
+                localStorage.removeItem(CONFIG.CACHE_TIMESTAMP_KEY);
+                alert('Cache limpo com sucesso!');
+                location.reload();
+            }
+        }
+
+        // ============================================
+        // CARREGAMENTO MASSIVO DA API
+        // ============================================
+        async function iniciarCarregamentoAPI() {
+            showLoading(true, 'Conectando à API...');
+            atualizarProgresso(0, 'Iniciando...');
+            
+            // Primeiro, descobrir quantos registros totais existem
+            try {
+                console.log('🔍 Descobrindo total de registros...');
+                atualizarProgresso(5, 'Consultando total de registros...');
+                
+                const totalInfo = await consultarTotalRegistros();
+                totalRegistrosAPI = totalInfo.total;
+                
+                console.log(`📊 API tem ${totalRegistrosAPI.toLocaleString()} registros totais`);
+                atualizarProgresso(10, `Encontrados ${totalRegistrosAPI.toLocaleString()} registros na API`);
+                
+                // Iniciar carregamento em massa
+                await carregarTodosDados();
+                
+            } catch (error) {
+                console.error('❌ Erro no carregamento inicial:', error);
+                atualizarProgresso(0, `Erro: ${error.message}`);
+                
+                // Tentar novamente
+                setTimeout(iniciarCarregamentoAPI, 5000);
+            }
+        }
+
+        async function consultarTotalRegistros() {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'total_callback_' + Math.random().toString(36).substr(2, 9);
+                
+                window[callbackName] = function(data) {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    
+                    if (data && data.success) {
+                        resolve({
+                            total: data.result.total || 0,
+                            records: data.result.records || []
+                        });
+                    } else {
+                        reject(new Error('Resposta inválida da API'));
+                    }
+                };
+                
+                const script = document.createElement('script');
+                script.src = `https://dados.mg.gov.br/api/3/action/datastore_search?resource_id=${CONFIG.RESOURCE_ID}&limit=1&callback=${callbackName}`;
+                
+                script.onerror = function() {
+                    delete window[callbackName];
+                    if (document.body.contains(script)) {
+                        document.body.removeChild(script);
+                    }
+                    reject(new Error('Falha na consulta'));
+                };
+                
+                setTimeout(() => {
+                    if (window[callbackName]) {
+                        delete window[callbackName];
+                        if (script.parentNode) {
+                            document.body.removeChild(script);
+                        }
+                        reject(new Error('Timeout na consulta'));
+                    }
+                }, 30000);
+                
+                document.body.appendChild(script);
+            });
+        }
+
+        async function carregarTodosDados() {
+            todosDados = [];
+            registrosCarregados = 0;
+            offsetAtual = 0;
+            
+            const totalPages = Math.ceil(totalRegistrosAPI / CONFIG.LIMIT);
+            console.log(`📥 Total de páginas a carregar: ${totalPages}`);
+            
+            // Carregar em lotes
+            for (let page = 0; page < totalPages; page++) {
+                const offset = page * CONFIG.LIMIT;
+                
+                try {
+                    const progresso = Math.min(10 + (page / totalPages * 90), 99);
+                    atualizarProgresso(
+                        progresso,
+                        `Carregando página ${page + 1} de ${totalPages} (${((page + 1) * CONFIG.LIMIT).toLocaleString()} de ${totalRegistrosAPI.toLocaleString()})`
+                    );
+                    
+                    console.log(`📄 Carregando página ${page + 1}/${totalPages} (offset: ${offset})`);
+                    
+                    const dadosPagina = await carregarPaginaJSONP(offset);
+                    
+                    if (dadosPagina && dadosPagina.records && dadosPagina.records.length > 0) {
+                        // Processar em lote para não travar
+                        await processarLoteDados(dadosPagina.records);
+                        
+                        registrosCarregados += dadosPagina.records.length;
+                        offsetAtual = offset + dadosPagina.records.length;
+                        
+                        console.log(`✅ Página ${page + 1} carregada: ${dadosPagina.records.length} registros`);
+                        
+                        // Pequena pausa para não sobrecarregar
+                        await delay(100);
+                    }
+                    
+                } catch (error) {
+                    console.error(`❌ Erro na página ${page + 1}:`, error);
+                    
+                    // Tentar novamente com backoff
+                    let tentativa = 1;
+                    while (tentativa <= CONFIG.MAX_RETRIES) {
+                        console.log(`🔄 Tentativa ${tentativa} de ${CONFIG.MAX_RETRIES} para página ${page + 1}`);
+                        atualizarProgresso(
+                            10 + (page / totalPages * 90),
+                            `Tentativa ${tentativa} de ${CONFIG.MAX_RETRIES} para página ${page + 1}`
+                        );
+                        
+                        await delay(CONFIG.RETRY_DELAY * tentativa);
+                        
+                        try {
+                            const dadosPagina = await carregarPaginaJSONP(offset);
+                            if (dadosPagina && dadosPagina.records) {
+                                await processarLoteDados(dadosPagina.records);
+                                registrosCarregados += dadosPagina.records.length;
+                                console.log(`✅ Página ${page + 1} recuperada na tentativa ${tentativa}`);
+                                break;
+                            }
+                        } catch (retryError) {
+                            console.warn(`⚠️ Tentativa ${tentativa} falhou:`, retryError.message);
+                        }
+                        
+                        tentativa++;
+                    }
+                    
+                    if (tentativa > CONFIG.MAX_RETRIES) {
+                        console.warn(`⚠️ Pulando página ${page + 1} após ${CONFIG.MAX_RETRIES} tentativas`);
+                    }
+                }
+            }
+            
+            // Finalizar carregamento
+            console.log(`🎉 Carregamento completo! Total: ${todosDados.length} registros`);
+            atualizarProgresso(100, `Carregamento completo! ${todosDados.length.toLocaleString()} registros`);
+            
+            // Salvar no cache
+            salvarNoCache(todosDados);
+            
+            // Calcular estatísticas
+            calcularEstatisticas();
+            
+            // Atualizar interface
+            dadosFiltrados = [...todosDados];
+            atualizarEstatisticas();
+            atualizarVirtualTable();
+            
+            // Mostrar mensagem final
+            setTimeout(() => {
+                showLoading(false);
+                document.getElementById('cacheStatus').innerHTML = `
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Carregamento completo:</strong> ${todosDados.length.toLocaleString()} registros carregados da API
+                `;
+                document.getElementById('cacheStatus').style.display = 'block';
+            }, 1000);
+        }
+
+        async function carregarPaginaJSONP(offset) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'page_callback_' + Math.random().toString(36).substr(2, 9);
+                
+                window[callbackName] = function(data) {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    
+                    if (data && data.success) {
+                        resolve(data.result);
+                    } else {
+                        reject(new Error('Resposta inválida da API'));
+                    }
+                };
+                
+                const params = `resource_id=${CONFIG.RESOURCE_ID}&limit=${CONFIG.LIMIT}&offset=${offset}`;
+                const script = document.createElement('script');
+                script.src = `https://dados.mg.gov.br/api/3/action/datastore_search?${params}&callback=${callbackName}`;
+                
+                script.onerror = function() {
+                    delete window[callbackName];
+                    if (document.body.contains(script)) {
+                        document.body.removeChild(script);
+                    }
+                    reject(new Error('Falha no carregamento'));
+                };
+                
+                setTimeout(() => {
+                    if (window[callbackName]) {
+                        delete window[callbackName];
+                        if (script.parentNode) {
+                            document.body.removeChild(script);
+                        }
+                        reject(new Error('Timeout no carregamento'));
+                    }
+                }, 30000);
+                
+                document.body.appendChild(script);
+            });
+        }
+
+        async function processarLoteDados(records) {
+            return new Promise(resolve => {
+                // Usar setTimeout para não bloquear a UI
+                setTimeout(() => {
+                    const novosDados = records.map(item => {
+                        // Extrair ano e mês
+                        const anoMes = item.ano_mes ? item.ano_mes.toString() : '';
+                        const ano = anoMes.substring(0, 4);
+                        const mes = anoMes.substring(4, 6);
+                        
+                        return {
+                            ano_mes: anoMes,
+                            ano: ano,
+                            mes: mes,
+                            masp: item.masp || '',
+                            nome: item.nome || '',
+                            siglaefetivo: item.siglaefetivo || '',
+                            nmefetivo: item.nmefetivo || '',
+                            carga_horaria: parseInt(item.carga_horaria) || 0,
+                            sigla_instituicao_lotacao: item.sigla_instituicao_lotacao || '',
+                            desc_instituicao_lotacao: item.desc_instituicao_lotacao || '',
+                            descsitserv: item.descsitserv || ''
+                        };
+                    });
+                    
+                    todosDados.push(...novosDados);
+                    resolve();
+                }, 0);
+            });
+        }
+
+        function calcularEstatisticas() {
+            // Resetar estatísticas
+            instituicoesUnicas.clear();
+            cargosUnicos.clear();
+            anosUnicos.clear();
+            mesesUnicos.clear();
+            
+            // Calcular em lotes para não travar
+            for (let i = 0; i < todosDados.length; i += CONFIG.BATCH_SIZE) {
+                const lote = todosDados.slice(i, i + CONFIG.BATCH_SIZE);
+                
+                lote.forEach(item => {
+                    if (item.desc_instituicao_lotacao) instituicoesUnicas.add(item.desc_instituicao_lotacao);
+                    if (item.nmefetivo) cargosUnicos.add(item.nmefetivo);
+                    if (item.ano) anosUnicos.add(item.ano);
+                    if (item.mes) mesesUnicos.add(item.mes);
+                });
+            }
+        }
+
+        // ============================================
+        // INTERFACE E CONTROLES
+        // ============================================
+        function atualizarProgresso(percentual, mensagem) {
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const progressDetails = document.getElementById('progressDetails');
+            
+            if (progressBar) progressBar.style.width = percentual + '%';
+            if (progressText) progressText.textContent = mensagem;
+            
+            // Detalhes adicionais
+            if (progressDetails) {
+                const details = [
+                    `Registros carregados: ${registrosCarregados.toLocaleString()} / ${totalRegistrosAPI.toLocaleString()}`,
+                    `Memória utilizada: ${(todosDados.length * 0.5).toFixed(1)} MB estimados`,
+                    `Progresso: ${percentual.toFixed(1)}%`
+                ];
+                progressDetails.innerHTML = details.join(' • ');
+            }
+            
+            // Atualizar header
+            document.getElementById('totalRecordsHeader').textContent = 
+                `${registrosCarregados.toLocaleString()} registros`;
+        }
+
+        function atualizarEstatisticas() {
+            const total = todosDados.length;
+            const cargaMedia = total > 0 
+                ? (todosDados.reduce((sum, item) => sum + item.carga_horaria, 0) / total).toFixed(1)
+                : 0;
+            
+            document.getElementById('statTotal').textContent = total.toLocaleString();
+            document.getElementById('statInstituicoes').textContent = instituicoesUnicas.size.toLocaleString();
+            document.getElementById('statCargos').textContent = cargosUnicos.size.toLocaleString();
+            document.getElementById('statCargaMedia').textContent = cargaMedia + 'h';
+            
+            // Atualizar header
+            document.getElementById('headerStats').innerHTML = `
+                <div>Conectado via JSONP</div>
+                <div>${total.toLocaleString()} registros carregados</div>
+            `;
+        }
+
+        // ============================================
+        // TABELA VIRTUAL (para performance)
+        // ============================================
+        function atualizarVirtualTable() {
+            const container = document.getElementById('virtualTable');
+            const content = document.getElementById('virtualTableContent');
+            
+            if (!container || !content || dadosFiltrados.length === 0) return;
+            
+            const scrollTop = container.scrollTop;
+            const containerHeight = container.clientHeight;
+            
+            // Calcular quais linhas mostrar
+            const startIndex = Math.floor(scrollTop / CONFIG.VIRTUAL_ROW_HEIGHT);
+            const visibleRows = Math.ceil(containerHeight / CONFIG.VIRTUAL_ROW_HEIGHT);
+            const endIndex = Math.min(startIndex + visibleRows + 2, dadosFiltrados.length); // +2 para buffer
+            
+            // Ajustar altura do conteúdo
+            content.style.height = (dadosFiltrados.length * CONFIG.VIRTUAL_ROW_HEIGHT) + 'px';
+            
+            // Dados a mostrar
+            dadosExibidos = dadosFiltrados.slice(startIndex, endIndex);
+            
+            // Renderizar linhas visíveis
+            let rowsHTML = '';
+            dadosExibidos.forEach((item, index) => {
+                const absoluteIndex = startIndex + index;
+                const top = absoluteIndex * CONFIG.VIRTUAL_ROW_HEIGHT;
+                
+                rowsHTML += `
+                    <div class="virtual-row ${absoluteIndex % 2 === 0 ? 'row-even' : 'row-odd'} row-hover" 
+                         style="top: ${top}px; height: ${CONFIG.VIRTUAL_ROW_HEIGHT}px;">
+                        <div style="padding: 10px 15px; display: grid; grid-template-columns: 100px 2fr 2fr 2fr 80px 100px; gap: 10px; align-items: center;">
+                            <div><strong>${item.masp}</strong></div>
+                            <div class="text-truncate" title="${item.nome}">${item.nome}</div>
+                            <div class="text-truncate" title="${item.desc_instituicao_lotacao}">${item.desc_instituicao_lotacao}</div>
+                            <div class="text-truncate" title="${item.nmefetivo}">${item.nmefetivo}</div>
+                            <div><span class="badge ${item.carga_horaria >= 40 ? 'bg-success' : 'bg-warning'}">${item.carga_horaria}h</span></div>
+                            <div><span class="badge ${item.descsitserv === 'ATIVO' ? 'bg-success' : 'bg-secondary'}">${item.descsitserv}</span></div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            content.innerHTML = rowsHTML;
+            
+            // Atualizar informações
+            const totalPages = Math.ceil(dadosFiltrados.length / rowsPerPage);
+            const startRow = startIndex + 1;
+            const endRow = Math.min(endIndex, dadosFiltrados.length);
+            
+            document.getElementById('tableInfo').textContent = 
+                `Mostrando ${startRow.toLocaleString()}-${endRow.toLocaleString()} de ${dadosFiltrados.length.toLocaleString()} registros`;
+            document.getElementById('paginationInfo').textContent = 
+                `Página ${currentPage} de ${totalPages}`;
+        }
+
+        // ============================================
+        // BUSCA E FILTROS
+        // ============================================
+        function executarBusca() {
+            const termo = document.getElementById('searchInput').value.toLowerCase().trim();
+            searchTerm = termo;
+            
+            if (!termo) {
+                dadosFiltrados = [...todosDados];
+            } else {
+                console.time('busca');
+                
+                // Dividir a busca em partes para não travar
+                dadosFiltrados = todosDados.filter(item => {
+                    return (
+                        (item.nome && item.nome.toLowerCase().includes(termo)) ||
+                        (item.masp && item.masp.toString().toLowerCase().includes(termo)) ||
+                        (item.nmefetivo && item.nmefetivo.toLowerCase().includes(termo)) ||
+                        (item.desc_instituicao_lotacao && item.desc_instituicao_lotacao.toLowerCase().includes(termo)) ||
+                        (item.sigla_instituicao_lotacao && item.sigla_instituicao_lotacao.toLowerCase().includes(termo))
+                    );
+                });
+                
+                console.timeEnd('busca');
+                console.log(`🔍 Busca encontrou ${dadosFiltrados.length} registros`);
+            }
+            
+            currentPage = 1;
+            atualizarVirtualTable();
+        }
+
+        function limparBusca() {
+            document.getElementById('searchInput').value = '';
+            searchTerm = '';
+            dadosFiltrados = [...todosDados];
+            currentPage = 1;
+            atualizarVirtualTable();
+        }
+
+        function paginaAnterior() {
+            if (currentPage > 1) {
+                currentPage--;
+                // Para navegação simples, vamos apenas scrollar
+                const container = document.getElementById('virtualTable');
+                const scrollTo = (currentPage - 1) * rowsPerPage * CONFIG.VIRTUAL_ROW_HEIGHT;
+                container.scrollTop = scrollTo;
+                atualizarVirtualTable();
+            }
+        }
+
+        function proximaPagina() {
+            const totalPages = Math.ceil(dadosFiltrados.length / rowsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                const container = document.getElementById('virtualTable');
+                const scrollTo = (currentPage - 1) * rowsPerPage * CONFIG.VIRTUAL_ROW_HEIGHT;
+                container.scrollTop = scrollTo;
+                atualizarVirtualTable();
+            }
+        }
+
+        // ============================================
+        // EXPORTAÇÃO
+        // ============================================
+        function exportarCSV() {
+            if (dadosFiltrados.length === 0) {
+                alert('Nenhum dado para exportar.');
+                return;
+            }
+            
+            showLoading(true, 'Gerando arquivo CSV...');
+            
+            // Usar Web Worker para não travar a UI
+            setTimeout(() => {
+                const headers = ['ano_mes', 'masp', 'nome', 'desc_instituicao_lotacao', 'nmefetivo', 'carga_horaria', 'descsitserv'];
+                
+                let csvContent = headers.join(';') + '\n';
+                
+                // Adicionar dados em chunks
+                const chunkSize = 10000;
+                for (let i = 0; i < dadosFiltrados.length; i += chunkSize) {
+                    const chunk = dadosFiltrados.slice(i, i + chunkSize);
+                    chunk.forEach(item => {
+                        csvContent += [
+                            item.ano_mes,
+                            item.masp,
+                            `"${item.nome.replace(/"/g, '""')}"`,
+                            `"${item.desc_instituicao_lotacao.replace(/"/g, '""')}"`,
+                            `"${item.nmefetivo.replace(/"/g, '""')}"`,
+                            item.carga_horaria,
+                            item.descsitserv
+                        ].join(';') + '\n';
+                    });
+                }
+                
+                const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                
+                const now = new Date();
+                const filename = `servidores_mg_completo_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours()}${now.getMinutes()}.csv`;
+                
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showLoading(false);
+                console.log(`📤 Exportados ${dadosFiltrados.length} registros para CSV`);
+                
+            }, 100);
+        }
+
+        function exportarJSON() {
+            if (dadosFiltrados.length === 0) {
+                alert('Nenhum dado para exportar.');
+                return;
+            }
+            
+            showLoading(true, 'Gerando arquivo JSON...');
+            
+            setTimeout(() => {
+                const jsonData = JSON.stringify(dadosFiltrados, null, 2);
+                const blob = new Blob([jsonData], { type: 'application/json' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                
+                const now = new Date();
+                const filename = `servidores_mg_completo_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}.json`;
+                
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showLoading(false);
+                console.log(`📤 Exportados ${dadosFiltrados.length} registros para JSON`);
+            }, 100);
+        }
+
+        // ============================================
+        // UTILIDADES
+        // ============================================
+        function showLoading(show, message = 'Carregando...') {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.style.display = show ? 'flex' : 'none';
+            }
+            if (message && show) {
+                atualizarProgresso(0, message);
+            }
+        }
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function recarregarDados() {
+            if (confirm('Isso irá recarregar todos os dados da API. Pode levar vários minutos. Continuar?')) {
+                localStorage.removeItem(CONFIG.CACHE_KEY);
+                localStorage.removeItem(CONFIG.CACHE_TIMESTAMP_KEY);
+                location.reload();
+            }
+        }
+
+        function testarPerformance() {
+            console.log('🧪 Testando performance...');
+            
+            const tests = [
+                { name: 'Filtro simples', func: () => todosDados.filter(d => d.carga_horaria >= 40) },
+                { name: 'Busca por instituição', func: () => todosDados.filter(d => d.desc_instituicao_lotacao.includes('SECRETARIA')) },
+                { name: 'Contagem por ano', func: () => {
+                    const counts = {};
+                    todosDados.forEach(d => { counts[d.ano] = (counts[d.ano] || 0) + 1; });
+                    return counts;
+                }}
+            ];
+            
+            tests.forEach(test => {
+                console.time(test.name);
+                const result = test.func();
+                console.timeEnd(test.name);
+                console.log(`${test.name}:`, result.length || 'OK');
+            });
+            
+            alert('Testes de performance completos. Veja o console para detalhes.');
+        }
+
+        // Funções globais para debug
+        window.todosDados = () => todosDados;
+        window.estatisticas = () => ({
+            total: todosDados.length,
+            instituicoes: instituicoesUnicas.size,
+            cargos: cargosUnicos.size,
+            anos: Array.from(anosUnicos),
+            meses: Array.from(mesesUnicos),
+            memoria: (todosDados.length * 0.5).toFixed(1) + ' MB estimados'
+        });
+
+    </script>
+
+</body>
+</html>
